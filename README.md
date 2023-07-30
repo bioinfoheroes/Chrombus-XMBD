@@ -1,7 +1,7 @@
 # Chrombus-XMBD
   A graph generative model capable of predicting chromatin interactions ab inito based on available chromatin features, including DNA accessibility, CTCF, RAD21, POLR2A, H3K4me3, and H3K27ac.
 
-  This repository contains the source code for the paper Chrombus-XMBD is a novel graph neural network framework for predictiing 3D-Genome. (paper link)
+  This repository contains the source code for the paper Chrombus-XMBD, a novel graph neural network framework for predictiing 3D-Genome. (paper link)
 
 ## 1. Construction of graph and model architecture
 <img src="https://github.com/bioinfoheroes/Chrombus-XMBD/assets/37092527/fb2940e7-157b-4e8c-b521-9b5393865162" width="700">
