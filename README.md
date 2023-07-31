@@ -30,7 +30,7 @@ Each sample for GM12878 model is randomly put-back cropped into 128-segments fro
 Regarding the generalization model, chromosomes are cropped into non-overlapping samples using a 128-segment window. In total, 301 (GM12878), 420 (K562) and 455 (CH12) samples are generated. Out of these samples, 50 samples are randomly selected for testing. To train the model, a five-fold cross-validation approach is applied, utilizing the least number of samples. Four model are trained, and the model with the best performance on the testing set is selected for cross-cell prediction. See the train_across_cell_line_model.py.
 
 ### 5.3 Predicting chromatin interaction at specific regions with well-trained Chrombus
-See the Chrombus_tutorial.ipynb.
+We provide test dataset of GM12878 cell line on chromsome 18. See the Chrombus_tutorial.ipynb.
 
 ## Contact:
 Yuanyuan Zeng: yuanyuanzeng0001@stu.xmu.edu.cn
