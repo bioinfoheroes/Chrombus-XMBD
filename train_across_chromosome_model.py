@@ -3,8 +3,7 @@ def train(loader):
     running_loss = 0
     for data in loader: # Iterate in batches over the training dataset.
         data = data.to(device)
-        pred_edge_index = getEdgeIndex(data.x.size(0), 128, max_span, batch=data.batch).to(device)
-        z = model.encode(data.x, pred_edge_index, data.batch) #encoding output        
+        z = model.encode(data.x, data.edge_index, data.batch) #encoding output        
         pred = model.decoder(z, data.edge_index, sigmoid=False) 
         loss = criterion(pred, data.edge_attr.view(-1)) # Compute the loss.
         loss.backward() # Derive gradients.  
@@ -19,8 +18,7 @@ def test(loader):
     pred_cor = 0
     for data in loader: # Iterate in batches over the training/test dataset.
         data = data.to(device)
-        pred_edge_index = getEdgeIndex(data.x.size(0), 128, max_span, batch=data.batch).to(device)
-        z = model.encode(data.x, pred_edge_index, data.batch) 
+        z = model.encode(data.x, data.edge_index, data.batch) 
         pred = model.decoder(z, data.edge_index, sigmoid=False) 
         loss = criterion(pred, data.edge_attr.view(-1)) # Check against ground-truth labels.
         mse += loss.cpu().detach()
