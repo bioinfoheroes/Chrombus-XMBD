@@ -23,6 +23,13 @@ torch=1.9.1+cu111
 pyg=2.0.2
 
 ## 5. Tutorial
+### 5.1 train across-chromosome model
+Each sample for GM12878 model is randomly put-back cropped into 128-segments from the training and testing chromosomes. For model training, 200 samples were generated from each chromosome, and 50 samples for testing purposes. See the train_across_chromosome_model.py. The trained model can be load from the directory "trained_model".
 
+### 5.2 train across cell lineage model
+Regarding the generalization model, chromosomes are cropped into non-overlapping samples using a 128-segment window. In total, 301 (GM12878), 420 (K562) and 455 (CH12) samples are generated. Out of these samples, 50 samples are randomly selected for testing. To train the model, a five-fold cross-validation approach is applied, utilizing the least number of samples. Four model are trained, and the model with the best performance on the testing set is selected for cross-cell prediction. See the train_across_cell_line_model.py.
+
+### 5.3 predicting chromatin interaction at specific regions with well-trained Chrombus
+See the Chrombus_tutorial.ipynb.
 
 
