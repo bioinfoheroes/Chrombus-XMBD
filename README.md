@@ -4,7 +4,8 @@
   This repository contains the source code for the paper Chrombus-XMBD, a novel graph neural network framework for predictiing 3D-Genome. (paper link)
 
 ## 1. Construction of graph and model architecture
-<img src="https://github.com/bioinfoheroes/Chrombus-XMBD/assets/37092527/fb2940e7-157b-4e8c-b521-9b5393865162" width="700">
+
+<img src="https://github.com/bioinfoheroes/Chrombus-XMBD/assets/37092527/8f9135b5-6603-4bd8-8749-55a772f183f6" width="700">
 
 ### (1) Construction of graph
   Each graph consists 128 vertices, and each vertex represents a chromatin segment derived from CTCF binding peaks. The node (vertex) attributes consist 14-dimensional chromatin features. The goal of the learning process is to generate the interactions among vertices, of which the labelling is based on Hi-C data (left panel).
