@@ -17,21 +17,19 @@
 <img src="https://github.com/bioinfoheroes/Chrombus-XMBD/assets/37092527/c2b3b74c-0855-49a4-a6cb-b710a9a348b9" width="900">
 
 ## 4. Dependency
-python=3.9.7
+python=3.11.5
 
-torch=1.9.1+cu111
+torch==2.1.0+cu118
 
-pyg=2.0.2
+torch-geometric==2.4.0
 
 ## 5. Tutorial
+### 5.0 Preprocessing input features
+CTCF, RAD21, H3K27ac, H3K4me3, POLR2A and DNase I signals are processed into 14-dimension features as model input. For each segment, the mean binding strength of CTCF,H3K27ac, H3K4me3, POLR2A and DNase I signals is calculated. The RAD21-binding at a given CTCF-site (“left cohesin” and “right cohesin”) was also processed as a binary status, where “1” indicated that RAD21-binding peak was in vicinity of the CTCF-site (within a 500bp). In additon, we inferred the directionality of CTCF motifs within the CTCF-binding sites using fimo. Each CTCF-site was labeled as “0”, “1” according to the positive and negative strand, and the confidence score. See the pipeline in [data_preprocessing_gm12878_hg19.sh](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/data_preprocessing_gm12878_hg19.sh). (bedtools)[https://bedtools.readthedocs.io/en/latest/] should be installed.
 ### 5.1 Train across-chromosome model
-Each sample for GM12878 model is randomly put-back cropped into 128-segments from the training and testing chromosomes. For model training, 200 samples were generated from each chromosome, and 50 samples for testing purposes. See the [train_across_chromosome_model.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/train_across_chromosome_model.py). The trained model can be load from the directory "trained_model".
-
-### 5.2 Train across cell lineage model
-Regarding the generalization model, chromosomes are cropped into non-overlapping samples using a 128-segment window. In total, 301 (GM12878), 420 (K562) and 455 (CH12) samples are generated. Out of these samples, 50 samples are randomly selected for testing. To train the model, a five-fold cross-validation approach is applied, utilizing the least number of samples. Four model are trained, and the model with the best performance on the testing set is selected for cross-cell prediction. See the [train_across_cell_line_model.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/train_across_cell_line_model.py).
-
-### 5.3 Predicting chromatin interaction at specific regions with well-trained Chrombus
-We provide test dataset of GM12878 cell line on chromsome 18. See the [Chrombus_tutorial.ipynb](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_tutorial.ipynb).
+Each sample for GM12878 model is randomly put-back cropped into 128-segments from the training and testing chromosomes. For model training, 200 samples were generated from each chromosome, and 50 samples for testing purposes. See the [Chrombus_pyG_train.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_train.py). The trained model can be load from the directory "trained_model".
+### 5.2 Predicting chromatin interaction at specific regions with well-trained Chrombus
+We provide test dataset of GM12878 cell line on chromsome 18. See the [Chrombus_pyG_predict.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_predict.py) and [Chrombus_tutorial.ipynb](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_tutorial.ipynb).
 
 ## Contact:
 Yuanyuan Zeng: yuanyuanzeng0001@stu.xmu.edu.cn
