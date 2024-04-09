@@ -1,18 +1,16 @@
 # %%
-import chrombus_pyG
+from Chrombus_pyG import chrombus_pyG
 from torch_geometric.nn import GAE
 import numpy as np
 import pandas
 import torch
 from torch_geometric.utils import to_undirected
 import copy
-from chrombus_pyG.model_utils_pyG import get_models
-from chrombus_pyG.model_utils_pyG import getEdgeIndex
 import pandas as pd
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
-from chrombus_pyG.generate_segments_for_sequence_cross import process_data
-from chrombus_pyG.generate_segments_for_sequence_cross import process_data_singlechrom
+from Chrombus_pyG.generate_segments_for_sequence_cross import process_data
+from Chrombus_pyG.generate_segments_for_sequence_cross import process_data_singlechrom
 import os
 
 device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
@@ -103,10 +101,61 @@ def load_chrombus_data_singlechrom(datapath,chrom,outpath,batch_size = 16):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     return dataloader
 
+def get_region_pred(model_path, chrom, start, end, datapath, outpath, max_span = 64):
+    device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
+    chr_len = [0,248956422, 242193529, 198295559, 190214555, 181538259, 170805979, 159345973, 145138636, 138394717, 133797422, 135086622, 133275309,114364328, 107043718, 101991189,  90338345,  83257441,  80373285,  58617616, 64444167, 46709983,50818468]
+    model = get_models()
+    model.load_state_dict(torch.load(model_path))
+    model.to(device)
+    ndata = pandas.read_csv(datapath + '/V_chr'+str(chrom)+'.csv')
+    edata = pandas.read_csv(datapath + '/chr'+str(chrom)+'_edges.csv')
+    edata = edata.iloc[:,:3]
+    edata.columns = ['from','to','hic']
+    #
+    idx0 = ndata[(ndata.v_start * chr_len[chrom] <= start) & (ndata.v_end * chr_len[chrom] >= start)].v_index.values[0]
+    idx1 = ndata[(ndata.v_start * chr_len[chrom] <= end) & (ndata.v_end * chr_len[chrom] >= end)].v_index.values[0]
+    n = int((128 - (idx1 - idx0)) / 2)
+    pos0 = idx0 - n
+    if pos0 < 0:
+        pos0 = 0
+    if pos0 + 128 > ndata.v_index.max():
+        pos0 = ndata.v_index.max() - 128
+    pos1 = pos0 + 128
+    #
+    ndata1 = copy.deepcopy(ndata)
+    ndata1.columns = [*range(ndata1.shape[1])]
+    x = ndata1[pos0:pos1]
+    x = torch.tensor(x[[*range(2,16)]].values, dtype=torch.float)
+    edge_index = torch.tensor(np.vstack((np.arange(128).repeat(128),np.tile(np.arange(128),128))))
+    data = Data(x=x, y=torch.tensor([1]), edge_index=edge_index)
+    dataloader = DataLoader([data], batch_size=1, shuffle=False)
+    data = next(iter(dataloader))
+    data = data.to(device)
+    #
+    pred_edge_index = getEdgeIndex(128, max_span, batch=data.batch).to(device)
+    z = model.encode(data.x, pred_edge_index, data.batch)
+    pred = model.decoder(z, data.edge_index)
+    df = pandas.DataFrame({'from':data.edge_index[0].cpu(), 'to':data.edge_index[1].cpu(), 'pred':pred.detach().cpu()})
+    df = df[df['from'] < df['to']]
+    df['from'] = df['from'] + pos0
+    df['to'] = df['to'] + pos0
+    #
+    df.reset_index(inplace=True)
+    from_pos = ndata.iloc[df['from'].values,:4]
+    from_pos.reset_index(inplace = True)
+    to_pos = ndata.iloc[df['to'].values,2:4]
+    to_pos.reset_index(inplace=True)
+    result = pd.concat([df.iloc[:,1:],from_pos.iloc[:,2:],to_pos.iloc[:,1:]], axis = 1)
+    result.columns = ['from', 'to', 'pred', 'v_chr','v_start1','v_end1','v_start2','v_end2']
+    result['dist'] = (result['v_start2'] - result['v_end1']) * chr_len[chrom]
+    result['chrom'] = chrom
+    result = pd.merge(result, edata,how = 'left',on = ['from','to'])
+    result.to_csv(outpath +'/chr'+str(chrom)+ ":" + str(start) + "-" + str(end) +'_pred.csv',index=None)
+    return result
 
 def get_pred(model_path,chrom,datapath, outpath,max_span = 64):
     device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
-    chr_len = [0,249250621, 243199373, 198022430, 191154276, 180915260, 171115067, 159138663, 146364022, 141213431, 135534747, 135006516, 133851895, 115169878, 107349540,102531392, 90354753, 81195210, 78077248, 59128983, 63025520, 48129895, 51304566]
+    chr_len = [0,248956422, 242193529, 198295559, 190214555, 181538259, 170805979, 159345973, 145138636, 138394717, 133797422, 135086622, 133275309,114364328, 107043718, 101991189,  90338345,  83257441,  80373285,  58617616, 64444167, 46709983,50818468]
     model = get_models()
     model.load_state_dict(torch.load(model_path))
     model.to(device)
@@ -125,29 +174,32 @@ def get_pred(model_path,chrom,datapath, outpath,max_span = 64):
         x = torch.tensor(x[[*range(2,16)]].values, dtype=torch.float)
         # data = next(iter(test_loader))
         # data.x = x
-        edge_index = np.vstack((np.arange(128).repeat(128),np.tile(np.arange(128),128)))
+        edge_index = torch.tensor(np.vstack((np.arange(128).repeat(128),np.tile(np.arange(128),128))))
         edge_index = edge_index[:,edge_index[0] <= edge_index[1]]
         data = Data(x=x, y=torch.tensor([1]), edge_index=edge_index)
+        dataloader = DataLoader([data], batch_size=1, shuffle=False)
+        data = next(iter(dataloader))
         # data.edge_index = edge_index
         data = data.to(device)
         #
         pred_edge_index = getEdgeIndex(128, max_span, batch=data.batch).to(device)
         z = model.encode(data.x, pred_edge_index, data.batch)
         pred = model.decoder(z, data.edge_index)
-        df = pd.DataFrame({'from':data.edge_index[0], 'to':data.edge_index[1], 'pred':pred.detach().cpu()})
+        df = pd.DataFrame({'from':data.edge_index[0].cpu(), 'to':data.edge_index[1].cpu(), 'pred':pred.detach().cpu()})
         df = df[df['from'] < df['to']]
         df['from'] = df['from'] + pos0
         df['to'] = df['to'] + pos0
         chr_df = pd.concat([chr_df, df])
         #
     chr_df = pd.DataFrame(chr_df.groupby(['from','to'],as_index=False)['pred'].mean())
+    chr_df.reset_index(inplace=True)
     from_pos = ndata.iloc[chr_df['from'].values,:4]
     from_pos.reset_index(inplace = True)
     to_pos = ndata.iloc[chr_df['to'].values,2:4]
     to_pos.reset_index(inplace=True)
-    result = pd.concat([chr_df,from_pos.iloc[:,2:],to_pos.iloc[:,1:]], axis = 1)
+    result = pd.concat([chr_df.iloc[:,1:],from_pos.iloc[:,2:],to_pos.iloc[:,1:]], axis = 1)
     result.columns = ['from', 'to', 'pred', 'v_chr','v_start1','v_end1','v_start2','v_end2']
     result['dist'] = (result['v_start2'] - result['v_end1']) * chr_len[chrom]
     result['chrom'] = chrom
     result = pd.merge(result, edata,how = 'left',on = ['from','to'])
-    result.to_csv(outpath + 'chrombus_pred.chr' + chrom + '.csv',index=None)
+    result.to_csv(outpath + 'chrombus_pred.chr' + str(chrom) + '.csv',index=None)
