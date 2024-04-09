@@ -12,6 +12,8 @@ from torch_geometric.loader import DataLoader
 from Chrombus_pyG.generate_segments_for_sequence_cross import process_data
 from Chrombus_pyG.generate_segments_for_sequence_cross import process_data_singlechrom
 import os
+import math
+from matplotlib import pyplot as plt
 
 device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
 
@@ -136,7 +138,7 @@ def get_region_pred(model_path, chrom, start, end, datapath, outpath, max_span =
     z = model.encode(data.x, pred_edge_index, data.batch)
     pred = model.decoder(z, data.edge_index)
     df = pandas.DataFrame({'from':data.edge_index[0].cpu(), 'to':data.edge_index[1].cpu(), 'pred':pred.detach().cpu()})
-    df = df[df['from'] < df['to']]
+    df = df[df['from'] <= df['to']]
     df['from'] = df['from'] + pos0
     df['to'] = df['to'] + pos0
     #
@@ -203,3 +205,47 @@ def get_pred(model_path,chrom,datapath, outpath,max_span = 64):
     result['chrom'] = chrom
     result = pd.merge(result, edata,how = 'left',on = ['from','to'])
     result.to_csv(outpath + 'chrombus_pred.chr' + str(chrom) + '.csv',index=None)
+
+
+def hic_heatmap(result, chrom, outpath):
+    #
+    chr_len = [0,248956422, 242193529, 198295559, 190214555, 181538259, 170805979, 159345973, 145138636, 138394717, 133797422, 135086622, 133275309,114364328, 107043718, 101991189,  90338345,  83257441,  80373285,  58617616, 64444167, 46709983,50818468]
+    start = math.ceil(result[['v_start1']].values[0][0] * chr_len[chrom] / 5000) * 5000
+    end = int(result[['v_end1']].values[-1][0] * chr_len[chrom] / 5000) * 5000
+    [start, end]
+    nrow = int((end - start) / 5000) + 1
+    init_value0 = np.nan
+    #
+    mat0 = np.array([init_value0] * nrow * nrow).reshape([nrow, nrow])
+    mat1 = np.array([init_value0] * nrow * nrow).reshape([nrow, nrow])
+    for i, row in result.iterrows():
+        x1 = int((row.iloc[4] * chr_len[chrom] - start) / 5000)
+        x2 = int((row.iloc[5] * chr_len[chrom] - start) / 5000)
+        y1 = int((row.iloc[6] * chr_len[chrom] - start) / 5000)
+        y2 = int((row.iloc[7] * chr_len[chrom] - start) / 5000)
+        if x1 < 0:
+            x1 = 0
+        if y1 < 0:
+            y1 = 0
+        if x2 > nrow:
+            x2 = nrow
+        if y2 > nrow:
+            y2 = nrow
+        mat0[x1:x2, y1:y2] = row.iloc[10]
+        mat0[y1:y2, x1:x2] = row.iloc[10]
+        mat1[y1:y2, x1:x2] = row.iloc[2]
+        mat1[x1:x2, y1:y2] = row.iloc[2]
+    ### plot
+    plt.figure(figsize=(9,4))
+    plt.subplot(121) 
+    im = plt.matshow(mat0, fignum=False, vmax = 5, cmap = 'Reds')
+    plt.colorbar(im, fraction=.04, pad = 0.02)
+    plt.axis('off')
+    plt.title("chr"+str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M")
+    plt.subplot(122) 
+    im = plt.matshow(mat1, fignum=False, vmax = 5, cmap = 'Reds')
+    plt.colorbar(im, fraction=.04, pad = 0.02)
+    plt.axis('off')
+    plt.title("chr"+str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M")
+    plt.savefig(outpath + "/chr" + str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M" + '.png')
+
