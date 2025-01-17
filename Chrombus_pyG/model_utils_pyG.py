@@ -15,7 +15,7 @@ import os
 import math
 from matplotlib import pyplot as plt
 
-device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
 def get_models(n_heads = 8, in_channels = 14, out_channels = 32, cis_span = 9):
     encoder = getattr(chrombus_pyG, "EdgeConvEncoder")
@@ -81,24 +81,24 @@ def train_model(model,trainloader,testloader, epochs = 400, max_span = 64,lr = 1
     torch.save(model.state_dict(), filepath + '/model_epoch' + str(epoch) + '.chrombus.pkl')
 
 
-def load_chrombus_data(datapath,test_chr,outpath,batch_size = 16):
+def load_chrombus_data(datapath,test_chr,outpath,batch_size = 16, n_seg = 128):
     if os.path.exists(outpath + '/chr' + str(test_chr) + '_epi_traindata.pt'):
         train_dataset = torch.load(outpath + '/chr' + str(test_chr) + '_epi_traindata.pt')
         test_dataset = torch.load(outpath + '/chr' + str(test_chr) + '_epi_testdata.pt')
     else:
-        process_data(dataset="test", testchr = test_chr, datapath = datapath, outpath = outpath, n_seg = 128, N_chr = 50)
-        process_data(dataset="train", testchr = test_chr, datapath = datapath, outpath = outpath, n_seg = 128, N_chr = 50)
+        process_data(dataset="test", testchr = test_chr, datapath = datapath, outpath = outpath, n_seg = n_seg, N_chr = 50)
+        process_data(dataset="train", testchr = test_chr, datapath = datapath, outpath = outpath, n_seg = n_seg, N_chr = 50)
         train_dataset = torch.load(outpath + '/chr' + str(test_chr) + '_epi_traindata.pt')
         test_dataset = torch.load(outpath + '/chr' + str(test_chr) + '_epi_testdata.pt')
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     return train_loader,test_loader
 
-def load_chrombus_data_singlechrom(datapath,chrom,outpath,batch_size = 16):
+def load_chrombus_data_singlechrom(datapath,chrom,outpath,batch_size = 16, N_chr = 50, n_seg = 128):
     if os.path.exists(outpath + '/chr' + str(chrom) + '_epi_data.pt'):
         dataset = torch.load(outpath + '/chr' + str(chrom) + '_epi_data.pt')
     else:
-        process_data_singlechrom(chr = chrom, datapath = datapath, outpath = outpath, n_seg = 128, N_chr = 50)
+        process_data_singlechrom(chr = chrom, datapath = datapath, outpath = outpath, n_seg = n_seg, N_chr = N_chr)
         dataset = torch.load(outpath + '/chr' + str(chrom) + '_epi_data.pt')
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     return dataloader
