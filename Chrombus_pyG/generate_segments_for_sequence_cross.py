@@ -76,11 +76,11 @@ def process_data(dataset, testchr, datapath, outpath, n_seg = 128, N_chr = 50):
     numpy.save(outpath + '/chr' + str(testchr) + '_' + str(dataset) + '_pos_list.npy', pos_list)
 
 
-def process_data(chr, datapath, outpath, n_seg = 128, N_chr = 50):
+def process_data_singlechrom(chr, datapath, outpath, n_seg = 128, N_chr = 50):
     min_interact = -10
     data_list = []
     pos_list = []
-    for i in chr:
+    for i in [chr]:
         print(i)
         #pos_dict[i] = []     ## for extracting sequence
         n_data_all = f'{datapath}/V_chr{i}.csv'
