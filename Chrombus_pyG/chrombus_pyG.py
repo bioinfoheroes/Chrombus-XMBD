@@ -6,7 +6,7 @@ from torch.nn import Linear,Softmax
 from torch_geometric.nn import InnerProductDecoder
 from torch_geometric.nn import MessagePassing
 
-device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
 
 class EdgeConv(MessagePassing):
