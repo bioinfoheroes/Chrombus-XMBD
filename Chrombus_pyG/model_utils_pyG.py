@@ -10,18 +10,25 @@ import pandas as pd
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from Chrombus_pyG.generate_segments_for_sequence_cross import process_data
-from Chrombus_pyG.generate_segments_for_sequence_cross import process_data_singlechrom
+from Chrombus_pyG.generate_segments_for_sequence_cross import process_data_singlechrom, process_data_singlechrom_pe
 import os
 import math
 from matplotlib import pyplot as plt
 
-device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
 
 def get_models(n_heads = 8, in_channels = 14, out_channels = 32, cis_span = 9):
     encoder = getattr(chrombus_pyG, "EdgeConvEncoder")
     decoder = getattr(chrombus_pyG, "EdgeConvDecoder")
     model = GAE(encoder=encoder(n_heads, in_channels, out_channels, cis_span), decoder=decoder())
     return model
+
+def get_models_pe(n_heads = 8, in_channels = 14, out_channels = 32, cis_span = 9):
+    encoder = getattr(chrombus_pyG, "EdgeConvEncoder_PE")
+    decoder = getattr(chrombus_pyG, "EdgeConvDecoder")
+    model = GAE(encoder=encoder(n_heads, in_channels, out_channels, cis_span), decoder=decoder())
+    return model
+
 
 def getEdgeIndex(n_seg=128, max_span=64, batch=None):
     index_all = np.zeros((2,0),dtype='int32')
@@ -103,11 +110,21 @@ def load_chrombus_data_singlechrom(datapath,chrom,outpath,batch_size = 16, N_chr
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
     return dataloader
 
+def load_chrombus_data_singlechrom_pe(datapath,chrom,outpath,batch_size = 16, N_chr = 50, n_seg = 128):
+    if os.path.exists(outpath + '/chr' + str(chrom) + '_epi_pe_data.pt'):
+        dataset = torch.load(outpath + '/chr' + str(chrom) + '_epi_pe_data.pt')
+    else:
+        process_data_singlechrom_pe(chr = chrom, datapath = datapath, outpath = outpath, n_seg = n_seg, N_chr = N_chr)
+        dataset = torch.load(outpath + '/chr' + str(chrom) + '_epi_pe_data.pt')
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    return dataloader
+
 def get_region_pred(model_path, chrom, start, end, datapath, outpath, max_span = 64):
     device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
     chr_len = [0,248956422, 242193529, 198295559, 190214555, 181538259, 170805979, 159345973, 145138636, 138394717, 133797422, 135086622, 133275309,114364328, 107043718, 101991189,  90338345,  83257441,  80373285,  58617616, 64444167, 46709983,50818468]
-    model = get_models()
-    model.load_state_dict(torch.load(model_path))
+    model = get_models_pe()
+    state = torch.load(model_path)
+    model.load_state_dict(state['model'])
     model.to(device)
     ndata = pandas.read_csv(datapath + '/V_chr'+str(chrom)+'.csv')
     edata = pandas.read_csv(datapath + '/chr'+str(chrom)+'_edges.csv')
@@ -128,6 +145,7 @@ def get_region_pred(model_path, chrom, start, end, datapath, outpath, max_span =
     ndata1.columns = [*range(ndata1.shape[1])]
     x = ndata1[pos0:pos1]
     x = torch.tensor(x[[*range(2,16)]].values, dtype=torch.float)
+    x = torch.cat([x,torch.arange(128)[:,None]],dim=-1)
     edge_index = torch.tensor(np.vstack((np.arange(128).repeat(128),np.tile(np.arange(128),128))))
     data = Data(x=x, y=torch.tensor([1]), edge_index=edge_index)
     dataloader = DataLoader([data], batch_size=1, shuffle=False)
@@ -151,6 +169,10 @@ def get_region_pred(model_path, chrom, start, end, datapath, outpath, max_span =
     result.columns = ['from', 'to', 'pred', 'v_chr','v_start1','v_end1','v_start2','v_end2']
     result['dist'] = (result['v_start2'] - result['v_end1']) * chr_len[chrom]
     result['chrom'] = chrom
+    result['v_start1'] = (result['v_start1'] * chr_len[chrom]).round().astype('int')
+    result['v_start2'] = (result['v_start2'] * chr_len[chrom]).round().astype('int')
+    result['v_end1'] = (result['v_end1'] * chr_len[chrom]).round().astype('int')
+    result['v_end2'] = (result['v_end2'] * chr_len[chrom]).round().astype('int')
     result = pd.merge(result, edata,how = 'left',on = ['from','to'])
     result.to_csv(outpath +'/chr'+str(chrom)+ ":" + str(start) + "-" + str(end) +'_pred.csv',index=None)
     return result
@@ -158,8 +180,9 @@ def get_region_pred(model_path, chrom, start, end, datapath, outpath, max_span =
 def get_pred(model_path,chrom,datapath, outpath,max_span = 64):
     device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
     chr_len = [0,248956422, 242193529, 198295559, 190214555, 181538259, 170805979, 159345973, 145138636, 138394717, 133797422, 135086622, 133275309,114364328, 107043718, 101991189,  90338345,  83257441,  80373285,  58617616, 64444167, 46709983,50818468]
-    model = get_models()
-    model.load_state_dict(torch.load(model_path))
+    model = get_models_pe()
+    state = torch.load(model_path)
+    model.load_state_dict(state['model'])
     model.to(device)
     ndata = pd.read_csv(datapath + '/V_chr'+str(chrom)+'.csv')
     edata = pd.read_csv(datapath + '/chr'+str(chrom)+'_edges.csv')
@@ -174,6 +197,7 @@ def get_pred(model_path,chrom,datapath, outpath,max_span = 64):
         ndata1.columns = [*range(ndata1.shape[1])]
         x = ndata1[pos0:pos1]
         x = torch.tensor(x[[*range(2,16)]].values, dtype=torch.float)
+        x = torch.cat([x,torch.arange(128)[:,None]],dim=-1)
         # data = next(iter(test_loader))
         # data.x = x
         edge_index = torch.tensor(np.vstack((np.arange(128).repeat(128),np.tile(np.arange(128),128))))
@@ -203,6 +227,10 @@ def get_pred(model_path,chrom,datapath, outpath,max_span = 64):
     result.columns = ['from', 'to', 'pred', 'v_chr','v_start1','v_end1','v_start2','v_end2']
     result['dist'] = (result['v_start2'] - result['v_end1']) * chr_len[chrom]
     result['chrom'] = chrom
+    result['v_start1'] = (result['v_start1'] * chr_len[chrom]).round().astype('int')
+    result['v_start2'] = (result['v_start2'] * chr_len[chrom]).round().astype('int')
+    result['v_end1'] = (result['v_end1'] * chr_len[chrom]).round().astype('int')
+    result['v_end2'] = (result['v_end2'] * chr_len[chrom]).round().astype('int')
     result = pd.merge(result, edata,how = 'left',on = ['from','to'])
     result.to_csv(outpath + 'chrombus_pred.chr' + str(chrom) + '.csv',index=None)
 
@@ -241,11 +269,11 @@ def hic_heatmap(result, chrom, outpath):
     im = plt.matshow(mat0, fignum=False, vmax = 5, cmap = 'Reds')
     plt.colorbar(im, fraction=.04, pad = 0.02)
     plt.axis('off')
-    plt.title("chr"+str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M")
+    plt.title("Hi-C "+"chr"+str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M")
     plt.subplot(122) 
     im = plt.matshow(mat1, fignum=False, vmax = 5, cmap = 'Reds')
     plt.colorbar(im, fraction=.04, pad = 0.02)
     plt.axis('off')
-    plt.title("chr"+str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M")
+    plt.title("Prediction "+"chr"+str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M")
     plt.savefig(outpath + "/chr" + str(chrom)+":"+str(int(start/1e6))+"M - "+str(int(end/1e6))+"M" + '.png')
 
