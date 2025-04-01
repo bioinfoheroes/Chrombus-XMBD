@@ -10,7 +10,7 @@
 ### (1) Construction of graph
   Each graph consists 128 vertices, and each vertex represents a chromatin segment derived from CTCF binding peaks. The node (vertex) attributes consist 14-dimensional chromatin features. The goal of the learning process is to generate the interactions among vertices, of which the labelling is based on Hi-C data (left panel).
 ### (2) Model architecture
-   Chrombus is adopted from GAE architecture. The encoder consists of three edge convolution layers with embedded QKV attention mechanism and outputs embedding of dimensions 32, 16, and 32. The decoder is implemented as a plain inner product (right panel).
+   Chrombus is adopted from GAE architecture. The encoder consists of three edge convolution layers with embedded multi-head attention mechanism and outputs embedding of dimensions 32, 16, and 32. The decoder is implemented as a plain inner product (right panel).
 ## 2. Predicting known chromatin interactions and TAD with Chrombus
   Chrombus's predictions of genes related to chromatin 3D structures in GM12878 cell line, including the TADs located at IRF4, BACH, HOXD family, HLA family, HOXA family and the beta-globin locus.
   
@@ -29,7 +29,7 @@ CTCF, RAD21, H3K27ac, H3K4me3, POLR2A and DNase I signals are processed into 14-
 ### 5.1 Train across-chromosome model
 Each sample for GM12878 model is randomly put-back cropped into 128-segments from the training and testing chromosomes. For model training, 200 samples were generated from each chromosome, and 50 samples for testing purposes. See the [Chrombus_pyG_train.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_train.py). The trained model can be load from the directory "trained_model".
 ### 5.2 Predicting chromatin interaction at specific regions with well-trained Chrombus
-We provide test dataset of GM12878 cell line on chromsome 1,2 and 18. See the [Chrombus_pyG_predict.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_predict.py), [Chrombus_tutorial.ipynb](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_tutorial.ipynb) and data repository https://doi.org/10.5281/zenodo.15117940.
+We provide test dataset of GM12878 cell line on chromsome 1, 2 and 18. See the [Chrombus_pyG_predict.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_predict.py), [Chrombus_tutorial.ipynb](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_tutorial.ipynb) and data repository https://doi.org/10.5281/zenodo.15117940.
 
 ## Contact:
 Yuanyuan Zeng: yuanyuanzeng0001@stu.xmu.edu.cn
