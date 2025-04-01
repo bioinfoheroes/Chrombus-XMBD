@@ -6,7 +6,7 @@ from torch.nn import Linear,Softmax
 from torch_geometric.nn import InnerProductDecoder
 from torch_geometric.nn import MessagePassing
 
-device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
 
 
 class EdgeConv(MessagePassing):
@@ -70,6 +70,26 @@ class EdgeConvEncoder(torch.nn.Module):
         self.conv1 = DynamicEdgeConv(n_heads, out_channels, out_channels // 2, thres=-.5, K=10000, cis=cis_span)
         self.conv2 = DynamicEdgeConv(n_heads, out_channels // 2, out_channels, thres=-.5, K=10000, cis=cis_span)
     def forward(self, x, edge_index, batch):
+        x0 = self.conv0(x, edge_index, batch)
+        # print(f'x0: {x0.size()}')
+        x0 = x0.relu()
+        x = self.conv1(x0, edge_index, batch)
+        x = x.relu()       
+        x = self.conv2(x, edge_index, batch)
+        x = x + x0  
+        x = x.relu()      
+        return x
+    
+class EdgeConvEncoder_PE(torch.nn.Module): 
+    def __init__(self, n_heads, in_channels, out_channels, cis_span):
+        super().__init__()
+        self.pe = torch.nn.Embedding(128,14)
+        self.lin = torch.nn.Linear(12,14)
+        self.conv0 = DynamicEdgeConv(n_heads, in_channels, out_channels, thres=-.5, K=10000, cis=cis_span)
+        self.conv1 = DynamicEdgeConv(n_heads, out_channels, out_channels // 2, thres=-.5, K=10000, cis=cis_span)
+        self.conv2 = DynamicEdgeConv(n_heads, out_channels // 2, out_channels, thres=-.5, K=10000, cis=cis_span)
+    def forward(self, x, edge_index, batch):
+        x = self.lin(x[:,2:-1]) + self.pe(x[:,-1].long())
         x0 = self.conv0(x, edge_index, batch)
         # print(f'x0: {x0.size()}')
         x0 = x0.relu()
