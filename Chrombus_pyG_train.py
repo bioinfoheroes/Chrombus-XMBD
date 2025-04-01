@@ -29,11 +29,11 @@ if __name__ == '__main__':
     if type == 1:
         #### 1. train "leve-one-out" model
         train_loader, test_loader = load_chrombus_data(datapath,test_chr,outpath)
-        model = get_models()
+        model = get_models_pe()
         train_model(model=model, trainloader=train_loader, testloader=test_loader,filepath=modelpath)
     else:
         #### 2. train "across-chromosome" model
-        train_loader = load_chrombus_data_singlechrom(datapath,train_chr,outpath)
-        test_loader = load_chrombus_data_singlechrom(datapath,test_chr,outpath)
-        model = get_models()
+        train_loader = load_chrombus_data_singlechrom_pe(datapath,train_chr,outpath)
+        test_loader = load_chrombus_data_singlechrom_pe(datapath,test_chr,outpath)
+        model = get_models_pe()
         train_model(model=model, trainloader=train_loader, testloader=test_loader,filepath=modelpath)
