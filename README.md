@@ -29,7 +29,7 @@ CTCF, RAD21, H3K27ac, H3K4me3, POLR2A and DNase I signals are processed into 14-
 ### 5.1 Train across-chromosome model
 Each sample for GM12878 model is randomly put-back cropped into 128-segments from the training and testing chromosomes. For model training, 200 samples were generated from each chromosome, and 50 samples for testing purposes. See the [Chrombus_pyG_train.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_train.py). The trained model can be load from the directory "trained_model".
 ### 5.2 Predicting chromatin interaction at specific regions with well-trained Chrombus
-We provide test dataset of GM12878 cell line on chromsome 18. See the [Chrombus_pyG_predict.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_predict.py) and [Chrombus_tutorial.ipynb](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_tutorial.ipynb).
+We provide test dataset of GM12878 cell line on chromsome 1,2 and 18. See the [Chrombus_pyG_predict.py](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_pyG_predict.py), [Chrombus_tutorial.ipynb](https://github.com/bioinfoheroes/Chrombus-XMBD/blob/main/Chrombus_tutorial.ipynb) and data repository https://doi.org/10.5281/zenodo.15117940.
 
 ## Contact:
 Yuanyuan Zeng: yuanyuanzeng0001@stu.xmu.edu.cn
